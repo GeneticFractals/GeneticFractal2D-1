@@ -30,21 +30,21 @@ $maxS=99
 #canvas parameters
 $canvasWidth=750
 $canvasHeight=750
-$scale=38
+$scale=19
 $xc=0
-$yc=-000
+$yc=-100
 #-------------------------------------------------------------------------------------
 # a few constants to define the data columns in the CSV
 SCol=0
-DrCol=1
-DrPhiLeftCol=2
-DrPhiRightCol=3
-DrBranchCol=4
-DrWidthCol=5
-DrColorColR=6
-DrColorColG=7
-DrColorColB=8
-DrLuminocityColB=9
+AccDrCol=1
+AccDrPhiLeftCol=2
+AccDrPhiRightCol=3
+AccBranchCol=4
+AccWidthCol=5
+AccColorColR=6
+AccColorColG=7
+AccColorColB=8
+AccLuminocityColB=9
 
 #-------------------------------------------------------------------------------------
 class Point
@@ -71,14 +71,14 @@ class GeneticFractal2D
   
   #create an empty array for the driver function 
   def initialize
-    @drivers = Array.new
+    @AccFunctions = Array.new
   end
   
   def readAccessoryFunctions(dfile)
     #read and parse CSV file in one line. Don't you love ruby!?
-    CSV.foreach(dfile,:col_sep=>"\t") do |row| @drivers<<row end
+    CSV.foreach(dfile,:col_sep=>"\t") do |row| @AccFunctions<<row end
     #delete the column headers that were read from the CSV file
-    @drivers.delete_at(0) 
+    @AccFunctions.delete_at(0) 
   end
 
   def creationEquation(dR,dPhi, lastPoint, lastPhi)
@@ -121,15 +121,16 @@ class GeneticFractal2D
       endPoint.right[1]*$scale-$yc+$canvasHeight/2,
       beginPoint.right[0]*$scale+$xc+$canvasWidth/2,
       beginPoint.right[1]*$scale-$yc+$canvasHeight/2,
-      'width' => width, 
-      'fill' => color)
+      'width' => 1, 
+      'fill' => color,
+      'outline' => color)
   end
 
   def evaluate(canvas,lastPoint,lastPhi,s,br)
     #get the driver values for Dr and Dphi
-    dR=@drivers[s][1].to_f
-    dPhi=@drivers[s][br].to_f
-    branchPoint=  @drivers[s][DrBranchCol].to_i != 0 
+    dR=@AccFunctions[s][1].to_f
+    dPhi=@AccFunctions[s][br].to_f
+    branchPoint=  @AccFunctions[s][AccBranchCol].to_i != 0 
 
     #first calculate the points of a branch until we hit a branch point
     while !branchPoint and s<$maxS# i.e. while it is not a branch point
@@ -139,12 +140,12 @@ class GeneticFractal2D
       nextPoint=Point.new(nextPoint)
 
       #first we get the values of the accessory functions color, width and luminocity      
-      l=@drivers[s][DrLuminocityColB].to_f
-      r=(@drivers[s][DrColorColR].to_f*l).to_i
-      g=(@drivers[s][DrColorColG].to_f*l).to_i
-      b=(@drivers[s][DrColorColB].to_f*l).to_i
+      l=@AccFunctions[s][AccLuminocityColB].to_f
+      r=(@AccFunctions[s][AccColorColR].to_f*l).to_i
+      g=(@AccFunctions[s][AccColorColG].to_f*l).to_i
+      b=(@AccFunctions[s][AccColorColB].to_f*l).to_i
       color="#"+"%02X" % r+"%02X" % g+"%02X" % b
-      width=@drivers[s][DrWidthCol].to_f
+      width=@AccFunctions[s][AccWidthCol].to_f
       
       #plot it on the canvas
       plotPoint(canvas,lastPoint,nextPoint,width,color)
@@ -153,9 +154,9 @@ class GeneticFractal2D
       lastPoint = nextPoint.dup
         
       #get the next driver values for Dr and Dphi and increment s
-      dR=@drivers[s][1].to_f
-      dPhi=@drivers[s][br].to_f
-      branchPoint=  @drivers[s][DrBranchCol].to_i != 0 
+      dR=@AccFunctions[s][1].to_f
+      dPhi=@AccFunctions[s][br].to_f
+      branchPoint=  @AccFunctions[s][AccBranchCol].to_i != 0 
       s+=1
     end
     
@@ -163,8 +164,8 @@ class GeneticFractal2D
     #    => either we have a branch point so we recursively create two branches;
     #    => or we reach the maximum value of s that we allowed and will skip this.
     if s<$maxS #check s hasn't reached the maximum
-      evaluate(canvas,nextPoint, lastPhi,s,DrPhiRightCol) # right branch uses column 2 of the data.txt file
-      evaluate(canvas,nextPoint, lastPhi,s,DrPhiLeftCol) # left branch uses column 3 of the data.txt file
+      evaluate(canvas,nextPoint, lastPhi,s,AccDrPhiRightCol) # right branch uses column 2 of the data.txt file
+      evaluate(canvas,nextPoint, lastPhi,s,AccDrPhiLeftCol) # left branch uses column 3 of the data.txt file
     end
   end
   def mainPlot
@@ -173,7 +174,7 @@ class GeneticFractal2D
     firstPoint=Point.new([0,0])
     firstPoint.left=[0,0]
     firstPoint.right=[0,0]
-    evaluate(canvas,firstPoint,3.141,0,DrPhiLeftCol)
+    evaluate(canvas,firstPoint,3.141,0,AccDrPhiLeftCol)
     canvas.pack    
     Tk.mainloop
   end
@@ -187,7 +188,7 @@ end
 # instantiate a fractal
 niceFractal=GeneticFractal2D.new
 
-# read the driver data
+# read the Accessory Function data
 niceFractal.readAccessoryFunctions("data.txt")
 
 # create a canvas and start evaluating the fractal
